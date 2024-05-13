@@ -30,8 +30,6 @@ def get_data(path, name):
 
         return sent1_list, sent2_list, score, id
 
-
-
 # if __name__ == "__main__":
 #%%
 path = "/home/liuzhu/datasets/STS-B/original/sts-test.tsv"
@@ -51,15 +49,17 @@ prompts = [
     "The essence of a sentence is often captured by its main subjects and actions, while descriptive terms provide additional but less central details. With this in mind , this sentence : \"%s\" means in one word : \""
 ]
 
-rep_sent1 = X.get_data_represents(sent1_list, 50, None, "Prompt_Last", prompts[5], True)
-rep_sent2 = X.get_data_represents(sent2_list, 50, None, "Prompt_Last", prompts[5], True)
+rep_sent1 = X.get_data_represents(sent1_list, 50, None, "Last", prompts[0], True)
+rep_sent2 = X.get_data_represents(sent2_list, 50, None, "Last", prompts[0], True)
 print(rep_sent2.shape)
-
 #%%
+df = pd.read_csv(path, sep="\t", header=None,usecols=[4,5,6])
+df.columns = ['score', 'sent1', 'sent2']
 pearsons = []
 for layer in range(rep_sent1.shape[1]):
     print("------Layer: %d-----" % layer)
     rep_sim = get_cos_similairty(rep_sent1[:,layer], rep_sent2[:,layer],ani_removal=(not rep_sent1[:,layer].equal(rep_sent2[:,layer])))
+    df["L%d"%layer] = (rep_sim + 1) * 2.5
     print(rep_sim.shape)
     print("Max: %f\tMin: %f\tMean: %f" % (rep_sim.max().item(), rep_sim.min().item(), rep_sim.mean().item()))
 
@@ -75,4 +75,7 @@ plt.plot(pearsons, marker="o")
 plt.title("Pearson's r on STS-B test set by P5")
 plt.xlabel("Layer Index")
 plt.ylabel("Pearson")
+# %%
+df.to_csv("/home/liuzhu/LLM_STS/pred_Last.csv", index=False,float_format="%.1f")
+
 # %%
