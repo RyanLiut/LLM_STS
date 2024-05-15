@@ -38,23 +38,27 @@ sent1_list, sent2_list, score, id = get_data(path, name)
 # for i in range(5):
 #     print(sent1_list[i], sent2_list[i], score[i], id[i])
 
-X = repre_extractor('/home/liuzhu/models/llama-main/llama-2-7b-hf', model_name="Llama")
+X = repre_extractor('/home/liuzhu/models/llama-main/llama-2-7b-hf', model_name="Llama", language="EN")
+# X = repre_extractor('/home/liuzhu/models/llama-main/bert-large-uncased', model_name="BERT-L", language="EN")
 #%%
 prompts = [
-    "This sentence : \"%s\" means in one word : \"",
-    "In this sentence %s, it means in one word :",
-    "This sentence : \"%s\" means something",
-    "This sentence : \"%s\" can be summarized as",
-    "After thinking step by step, this sentence : \"%s\" means in one word : \"",
-    "The essence of a sentence is often captured by its main subjects and actions, while descriptive terms provide additional but less central details. With this in mind , this sentence : \"%s\" means in one word : \""
+    "This sentence : \"%s\" means in one word : \"", # P0
+    "In this sentence %s, it means in one word :", # P1
+    "This sentence : \"%s\" means something", # P2
+    "This sentence : \"%s\" can be summarized as", # P3
+    "After thinking step by step, this sentence : \"%s\" means in one word : \"", # P4
+    "The essence of a sentence is often captured by its main subjects and actions, while descriptive terms provide additional but less central details. With this in mind , this sentence : \"%s\" means in one word : \"", # P5
+    "Rewrite the sentence: %s, rewritten sentence: %s" # P6
 ]
 
-rep_sent1 = X.get_data_represents(sent1_list, 50, None, "Last", prompts[0], True)
-rep_sent2 = X.get_data_represents(sent2_list, 50, None, "Last", prompts[0], True)
+rep_sent1 = X.get_data_represents(sent1_list, 50, None, "Prompt_Echo", prompts[-1], True)
+rep_sent2 = X.get_data_represents(sent2_list, 50, None, "Prompt_Echo", prompts[-1], True)
 print(rep_sent2.shape)
 #%%
 df = pd.read_csv(path, sep="\t", header=None,usecols=[4,5,6])
 df.columns = ['score', 'sent1', 'sent2']
+df['sent1'] = [" ".join([X.tokenizer.decode(i).replace(" ", "") for i in X.tokenizer.encode(s)]) for s in df['sent1']]
+df['sent2'] = [" ".join([X.tokenizer.decode(i).replace(" ", "") for i in X.tokenizer.encode(s)]) for s in df['sent2']]
 pearsons = []
 for layer in range(rep_sent1.shape[1]):
     print("------Layer: %d-----" % layer)
@@ -72,10 +76,13 @@ for layer in range(rep_sent1.shape[1]):
 #%%
 plt.figure()
 plt.plot(pearsons, marker="o")
-plt.title("Pearson's r on STS-B test set by P5")
+plt.title("Pearson's r on STS-B test set Avg (Repeat Second)")
 plt.xlabel("Layer Index")
 plt.ylabel("Pearson")
 # %%
-df.to_csv("/home/liuzhu/LLM_STS/pred_Last.csv", index=False,float_format="%.1f")
+df.to_csv("/home/liuzhu/LLM_STS/pred_RepeatSec.csv", index=False,float_format="%.1f")
 
 # %%
+df = pd.read_csv("LLM_STS/pred_Avg.csv")
+df['rank_GT'] = df['score'].rank(method="max")
+df['rank_L0'] = df['score'].rank
